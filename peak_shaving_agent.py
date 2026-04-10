@@ -1,11 +1,17 @@
 import requests
 import time
 import base64
+import os
 from requests.auth import HTTPBasicAuth
 
-# OpenEMS REST API Configuration
-OPENEMS_URL = "http://localhost:8084/rest/channel"
-AUTH = HTTPBasicAuth('user', 'password') # Default read/write user if configured, else admin/admin
+# OpenEMS REST API Configuration externalized to environment variables
+OPENEMS_HOST = os.environ.get('OPENEMS_HOST', 'localhost')
+OPENEMS_PORT = os.environ.get('OPENEMS_REST_PORT', '8084')
+OPENEMS_USER = os.environ.get('OPENEMS_USER', 'user')
+OPENEMS_PASSWORD = os.environ.get('OPENEMS_PASSWORD', 'password')
+
+OPENEMS_URL = f"http://{OPENEMS_HOST}:{OPENEMS_PORT}/rest/channel"
+AUTH = HTTPBasicAuth(OPENEMS_USER, OPENEMS_PASSWORD)
 
 MAX_GRID_W = 80000 # 80 kW limit
 
@@ -43,8 +49,6 @@ def run_agent():
             print(f"Current Grid Power: {grid_w} W, ESS SoC: {soc} %")
 
             # 3. Calculate Target Power for ESS
-            # Positive power means discharge (provide energy to the grid/loads)
-            # Negative power means charge
             if grid_w > MAX_GRID_W:
                 required_discharge_w = grid_w - MAX_GRID_W
                 # Protect battery from over-discharging (simple logic)
@@ -55,20 +59,16 @@ def run_agent():
                     target_power = 0
                     print("Peak detected, but ESS SoC is too low! Cannot discharge.")
             else:
-                # Normal operation, perhaps charge if low, but keep simple for now
                 target_power = 0
                 print("Grid power within limits.")
 
             # 4. Send command to OpenEMS
-            # We configured the FixActivePower controller to be our target
-            # However, directly writing to ess0/SetActivePowerEquals is the standard way for external controllers
-            # Let's write to ess0/SetActivePowerEquals
             set_channel_value("ess0", "SetActivePowerEquals", target_power)
 
         else:
             print("Failed to read telemetry from OpenEMS. Retrying...")
 
-        # Run loop every 5 seconds (simulating 1-second control loop with some buffer)
+        # Run loop every 5 seconds
         time.sleep(5)
 
 if __name__ == "__main__":

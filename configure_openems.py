@@ -1,8 +1,15 @@
 import requests
 import json
 import time
+import os
 
-url = "http://admin:admin@localhost:8080/system/console/configMgr"
+# Externalize credentials and URL using environment variables
+OPENEMS_HOST = os.environ.get('OPENEMS_HOST', 'localhost')
+OPENEMS_PORT = os.environ.get('OPENEMS_PORT', '8080')
+OPENEMS_USER = os.environ.get('OPENEMS_USER', 'admin')
+OPENEMS_PASSWORD = os.environ.get('OPENEMS_PASSWORD', 'admin')
+
+url = f"http://{OPENEMS_HOST}:{OPENEMS_PORT}/system/console/configMgr"
 
 def configure(pid, properties):
     # Form data for OSGi config manager
@@ -15,7 +22,7 @@ def configure(pid, properties):
 
     print(f"Configuring {pid}...")
     try:
-        response = requests.post(url, data=data)
+        response = requests.post(url, data=data, auth=(OPENEMS_USER, OPENEMS_PASSWORD))
         print(response.status_code)
     except Exception as e:
         print(f"Failed to configure {pid}: {e}")
@@ -70,7 +77,6 @@ configs = [
     }
 ]
 
-# Write out to be run later if we decide to
 if __name__ == "__main__":
     for c in configs:
         configure(c["pid"], c["properties"])
