@@ -27,12 +27,16 @@ def configure(pid, properties):
     except Exception as e:
         print(f"Failed to configure {pid}: {e}")
 
+# Read load profile content securely
+with open("load_profile.csv", "r") as f:
+    load_profile_content = f.read()
+
 configs = [
     {
         "pid": "io.openems.edge.simulator.datasource.csv.direct",
         "properties": {
             "id": "datasource0",
-            "source": open("load_profile.csv").read(),
+            "source": load_profile_content,
             "timeDelta": 1,
             "factor": 1,
             "propertylist": "id,source,timeDelta,factor"
